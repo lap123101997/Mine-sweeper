@@ -184,7 +184,29 @@
       themeToggle.checked = light; setTheme(light);
     })();
     themeToggle.addEventListener('change', e=> setTheme(e.target.checked));
+    
+    function fitBoard() {
+    const cs = getComputedStyle(boardEl);
+    const gap = parseFloat(cs.gap) || 6;
 
+    const toolbarH = document.querySelector('.toolbar')?.getBoundingClientRect().height || 0;
+    const footerH  = document.querySelector('.footer')?.getBoundingClientRect().height || 0;
+    const wrapPad  = 14 * 2;      
+    const appSide  = 22 * 2;      
+    const topBottomExtra = 22 + 16; 
+
+    const availW = window.innerWidth  - appSide;
+    const availH = window.innerHeight - (toolbarH + footerH + topBottomExtra);
+
+    const sizeW = Math.floor((availW - (cols - 1) * gap - wrapPad) / cols);
+    const sizeH = Math.floor((availH - (rows - 1) * gap - wrapPad) / rows);
+    const size  = Math.max(24, Math.min(54, Math.min(sizeW, sizeH)));
+
+    boardEl.style.setProperty('--cellSize', size + 'px');
+    }
+
+    window.addEventListener('resize', fitBoard);
+    
     function alloc(){
       isMine = Array.from({length:rows}, () => Array(cols).fill(false));
       adj    = Array.from({length:rows}, () => Array(cols).fill(0));
@@ -211,6 +233,7 @@
           boardEl.appendChild(cell);
         }
       }
+      fitBoard();
       updateCounters();
     }
     function updateCounters(){ minesEl.textContent = pad3(totalMines - flagsPlaced); timerEl.textContent = pad3(seconds); }
@@ -303,7 +326,7 @@
     diffSel.addEventListener('change', applyDifficulty);
     newBtn.addEventListener('click', resetBoard);
     faceBtn.addEventListener('click', resetBoard);
-    (function boot(){ applyDifficulty(); })();
+    (function boot(){ applyDifficulty(); fitBoard();})();
   </script>
 </body>
 </html>
