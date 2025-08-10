@@ -1,22 +1,309 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Minesweeper</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f1216" />
-<link rel="apple-touch-icon" href="icon-192.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Minesweeper</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f1216" />
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    :root{
+      --bg: #0f1216;
+      --panel:#151a21;
+      --panel-2:#1a212b;
+      --text:#dbe2ea;
+      --muted:#8a98ad;
+      --accent:#7aa2f7;
+      --danger:#ef4444;
+      --success:#22c55e;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --cell: #0f141b;
+      --cell-light: #0b1016;
+    }
+    [data-theme="light"]{
+      --bg:#f6f8fb;
+      --panel:#ffffff;
+      --panel-2:#f0f3f8;
+      --text:#0b1320;
+      --muted:#5c6b80;
+      --accent:#3b82f6;
+      --danger:#dc2626;
+      --success:#16a34a;
+      --shadow:0 10px 25px rgba(15,18,22,.08);
+      --cell:#e9eef6;
+      --cell-light:#dde6f3;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font:500 16px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      display:grid; place-items:center; padding:22px;
+      transition: background .2s ease, color .2s ease;
+    }
+    .app{ width:min(100%, 980px)}
+    .toolbar{
+      display:grid; grid-template-columns: 1fr auto 1fr; gap:12px; align-items:center;
+      background:var(--panel); border-radius:18px; padding:14px 16px; box-shadow:var(--shadow);
+      margin: 0 0 16px;
+    }
+    .left, .right{display:flex; gap:10px; align-items:center}
+    .brand{font-weight:800; letter-spacing:.3px}
+    select, button{border:0; outline:0}
+    select{
+      background:var(--panel-2); color:var(--text); padding:10px 12px; border-radius:12px; font-weight:600;
+    }
+    .btn{background:var(--accent); color:white; padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer}
+    .btn:active{transform:translateY(1px)}
+    .stats{ display:flex; align-items:center; gap:10px; justify-self:center }
+    .counter{
+      min-width:78px; text-align:center; background:var(--panel-2); padding:10px 12px; border-radius:12px; font-variant-numeric: tabular-nums; font-weight:800;
+    }
+    #face{ width:48px; height:48px; border-radius:14px; font-size:22px; background:var(--panel-2); cursor:pointer }
+    #face:active{ transform: translateY(1px) }
+    .board-wrap{ background:var(--panel); padding:14px; border-radius:18px; box-shadow:var(--shadow) }
+    #board{
+      --cellSize: 36px;
+      display:grid; gap:6px;
+      grid-template-columns: repeat(var(--cols), var(--cellSize));
+      grid-auto-rows: var(--cellSize);
+      justify-content:center;
+    }
+    .cell{
+      user-select:none; -webkit-user-select:none;
+      display:grid; place-items:center;
+      width:var(--cellSize); height:var(--cellSize);
+      background:linear-gradient(180deg, var(--cell) 0%, var(--cell-light) 100%);
+      border-radius:10px; box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+      cursor:pointer; font-weight:800; font-size:18px; color:var(--text);
+      transition: transform .05s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .cell:active{ transform: translateY(1px) }
+    .cell.open{ background:var(--panel-2); cursor:default; box-shadow:none }
+    .cell.flag::after{ content:"🚩" }
+    .cell.mine.open{ background: #2b1a1a }
+    .cell.mine.open::after{ content:"💣"; font-size:18px }
+    .cell.boom{ animation:pop .2s ease both; background:#3a1a1a }
+    @keyframes pop{ from{ transform:scale(.96)} to{ transform:scale(1)} }
+    .n1{ color:#3b82f6 }
+    .n2{ color:#16a34a }
+    .n3{ color:#ef4444 }
+    .n4{ color:#8b5cf6 }
+    .n5{ color:#d97706 }
+    .n6{ color:#06b6d4 }
+    .n7{ color:#111827 }
+    .n8{ color:#6b7280 }
+    .footer{ margin-top:10px; color:var(--muted); text-align:center; font-size:13px }
+    .switch{ position:relative; display:inline-block; width:54px; height:30px }
+    .switch input{ display:none }
+    .slider{ position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:var(--panel-2); border-radius:999px }
+    .slider:before{ position:absolute; content:""; height:24px; width:24px; left:3px; top:3px; background:white; border-radius:50%; transition: transform .2s ease }
+    input:checked + .slider:before{ transform: translateX(24px) }
+    @media (max-width:600px){
+      #board{ --cellSize: 32px; gap:5px }
+      #face{ width:44px; height:44px }
+      .counter{ min-width:66px }
+    }
+  </style>
 </head>
 <body>
-<h1>Minesweeper PWA</h1>
-<p>This is a placeholder for your Minesweeper game code. Replace this with the game HTML/JS.</p>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js');
-  });
-}
-</script>
+  <div class="app" id="app">
+    <div class="toolbar">
+      <div class="left">
+        <div class="brand">🧩 Minesweeper</div>
+        <select id="difficulty" aria-label="Difficulty">
+          <option value="beginner">Beginner 9×9 · 10</option>
+          <option value="intermediate">Intermediate 16×16 · 40</option>
+          <option value="expert">Expert 16×30 · 99</option>
+          <option value="custom">Custom…</option>
+        </select>
+        <button class="btn" id="new">New Game</button>
+      </div>
+      <div class="stats">
+        <div class="counter" id="mines">010</div>
+        <button id="face" aria-label="Reset" title="Reset">🙂</button>
+        <div class="counter" id="timer">000</div>
+      </div>
+      <div class="right" title="Toggle theme">
+        <label class="switch">
+          <input type="checkbox" id="themeToggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="board-wrap">
+      <div id="board" role="grid" aria-label="Minesweeper board"></div>
+    </div>
+    <div class="footer">Tap to reveal · Long‑press to flag · Double‑tap a number to chord</div>
+  </div>
+
+  <script>
+    // Register service worker for offline
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js');
+      });
+    }
+  </script>
+
+  <script>
+    const DIFFICULTIES = {
+      beginner: { rows: 9, cols: 9, mines: 10 },
+      intermediate: { rows: 16, cols: 16, mines: 40 },
+      expert: { rows: 16, cols: 30, mines: 99 },
+    };
+    const boardEl = document.getElementById('board');
+    const minesEl = document.getElementById('mines');
+    const timerEl = document.getElementById('timer');
+    const faceBtn = document.getElementById('face');
+    const diffSel = document.getElementById('difficulty');
+    const newBtn = document.getElementById('new');
+    const themeToggle = document.getElementById('themeToggle');
+    let rows = 9, cols = 9, totalMines = 10;
+    let firstClick = true, alive = true, won = false;
+    let revealedCount = 0, flagsPlaced = 0;
+    let timer = null, seconds = 0;
+    let isMine = [], adj = [], open = [], flag = [];
+    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+    const inBounds = (r,c) => r>=0 && r<rows && c>=0 && c<cols;
+    const eachNeighbor = (r,c,fn) => {
+      for(let dr=-1; dr<=1; dr++) for(let dc=-1; dc<=1; dc++){
+        if(dr===0 && dc===0) continue; const nr=r+dr, nc=c+dc; if(inBounds(nr,nc)) fn(nr,nc);
+      }
+    };
+    const pad3 = n => String(clamp(n,0,999)).padStart(3,'0');
+    function setFace(s){ faceBtn.textContent = s }
+    function setTheme(light){
+      document.documentElement.setAttribute('data-theme', light ? 'light' : '');
+      try{ localStorage.setItem('ms.theme', light ? 'light' : 'dark'); }catch{}
+    }
+    (function(){
+      const saved = (localStorage && localStorage.getItem('ms.theme')) || '';
+      const light = saved ? saved === 'light' : window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches;
+      themeToggle.checked = light; setTheme(light);
+    })();
+    themeToggle.addEventListener('change', e=> setTheme(e.target.checked));
+
+    function alloc(){
+      isMine = Array.from({length:rows}, () => Array(cols).fill(false));
+      adj    = Array.from({length:rows}, () => Array(cols).fill(0));
+      open   = Array.from({length:rows}, () => Array(cols).fill(false));
+      flag   = Array.from({length:rows}, () => Array(cols).fill(false));
+    }
+    function resetBoard(){
+      firstClick = true; alive = true; won = false; revealedCount = 0; flagsPlaced = 0; seconds = 0;
+      clearInterval(timer); timer = null; timerEl.textContent = '000';
+      setFace('🙂'); alloc(); boardEl.style.setProperty('--cols', cols); boardEl.innerHTML = '';
+      for(let r=0;r<rows;r++){
+        for(let c=0;c<cols;c++){
+          const cell = document.createElement('div');
+          cell.className = 'cell'; cell.setAttribute('role','button'); cell.setAttribute('aria-label', 'Hidden cell');
+          cell.dataset.r = r; cell.dataset.c = c;
+          cell.addEventListener('click', ()=>{ if(!alive) return; reveal(+cell.dataset.r,+cell.dataset.c); });
+          cell.addEventListener('contextmenu', (e)=>{ e.preventDefault(); if(!alive) return; toggleFlag(+cell.dataset.r,+cell.dataset.c); });
+          let pressTimer = null; let pointerDown = false;
+          cell.addEventListener('pointerdown', ()=>{
+            pointerDown = true;
+            pressTimer = setTimeout(()=>{ if(pointerDown){ toggleFlag(+cell.dataset.r, +cell.dataset.c); } }, 450);
+          });
+          ['pointerup','pointerleave','pointercancel'].forEach(evt=> cell.addEventListener(evt, ()=>{ pointerDown=false; clearTimeout(pressTimer); }));
+          boardEl.appendChild(cell);
+        }
+      }
+      updateCounters();
+    }
+    function updateCounters(){ minesEl.textContent = pad3(totalMines - flagsPlaced); timerEl.textContent = pad3(seconds); }
+    function startTimer(){ if(timer) return; timer = setInterval(()=>{ seconds = Math.min(999, seconds+1); timerEl.textContent = pad3(seconds); }, 1000); }
+    function placeMines(safeR, safeC){
+      const safe = new Set(); safe.add(safeR+','+safeC); eachNeighbor(safeR, safeC, (nr,nc)=> safe.add(nr+','+nc));
+      let placed = 0; const total = rows*cols; const max = totalMines;
+      while(placed < max){
+        const pick = Math.floor(Math.random()*total); const r = Math.floor(pick/cols), c = pick % cols;
+        const key = r+','+c;
+        if(isMine[r][c] || safe.has(key)) continue;
+        isMine[r][c] = true; placed++;
+      }
+      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) if(isMine[r][c]){ eachNeighbor(r,c,(nr,nc)=> adj[nr][nc] += 1); }
+    }
+    function cellEl(r,c){ return boardEl.children[r*cols + c]; }
+    function reveal(r,c){
+      if(!inBounds(r,c) || open[r][c] || flag[r][c]) return;
+      if(firstClick){ placeMines(r,c); firstClick=false; startTimer(); }
+      const el = cellEl(r,c);
+      open[r][c] = true; el.classList.add('open'); el.setAttribute('aria-label','Revealed');
+      if(isMine[r][c]){ el.classList.add('mine','boom'); alive = false; setFace('😵'); stopAndReveal(); return; }
+      revealedCount++;
+      const n = adj[r][c];
+      if(n>0){ el.textContent = n; el.classList.add('n'+n); }
+      else{
+        const q=[[r,c]]; while(q.length){
+          const [rr,cc]=q.shift();
+          eachNeighbor(rr,cc,(nr,nc)=>{
+            if(!open[nr][nc] && !flag[nr][nc] && !isMine[nr][nc]){
+              open[nr][nc]=true; const cel = cellEl(nr,nc); cel.classList.add('open'); cel.setAttribute('aria-label','Revealed');
+              revealedCount++;
+              const m = adj[nr][nc];
+              if(m>0){ cel.textContent=m; cel.classList.add('n'+m); }
+              else q.push([nr,nc]);
+            }
+          });
+        }
+      }
+      checkWin();
+    }
+    function toggleFlag(r,c){
+      if(open[r][c]) return;
+      flag[r][c] = !flag[r][c];
+      const el = cellEl(r,c);
+      if(flag[r][c]){ el.classList.add('flag'); el.setAttribute('aria-label','Flagged'); flagsPlaced++; }
+      else{ el.classList.remove('flag'); el.setAttribute('aria-label','Hidden cell'); flagsPlaced--; }
+      updateCounters();
+      checkWin();
+    }
+    function chord(r,c){
+      if(!open[r][c]) return; const need = adj[r][c]; if(need<=0) return;
+      let flagged=0; eachNeighbor(r,c,(nr,nc)=> flagged += flag[nr][nc] ? 1 : 0);
+      if(flagged !== need) return;
+      eachNeighbor(r,c,(nr,nc)=>{ if(!flag[nr][nc]) reveal(nr,nc); });
+    }
+    function stopAndReveal(){
+      clearInterval(timer); timer=null;
+      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+        const el = cellEl(r,c);
+        if(isMine[r][c]){ el.classList.add('mine'); if(!open[r][c]) el.classList.add('open'); }
+      }
+    }
+    function checkWin(){
+      if(!alive) return;
+      const totalSafe = rows*cols - totalMines;
+      if(revealedCount >= totalSafe){
+        won = true; alive = false; setFace('😎'); clearInterval(timer); timer=null;
+        for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) if(isMine[r][c] && !flag[r][c]){ flag[r][c]=true; cellEl(r,c).classList.add('flag'); flagsPlaced++; }
+        updateCounters();
+      }
+    }
+    boardEl.addEventListener('dblclick', (e)=>{
+      const target = e.target.closest('.cell'); if(!target) return; chord(+target.dataset.r, +target.dataset.c);
+    });
+    // Controls
+    function applyDifficulty(){
+      const v = diffSel.value;
+      if(v === 'custom'){
+        const rr = clamp(parseInt(prompt('Rows (5–24):')||'0',10),5,24);
+        const cc = clamp(parseInt(prompt('Cols (5–40):')||'0',10),5,40);
+        const maxM = rr*cc - 9;
+        const mm = clamp(parseInt(prompt(`Mines (1–${maxM}):`)||'0',10),1,maxM);
+        rows=rr; cols=cc; totalMines=mm;
+      }else{
+        const d = DIFFICULTIES[v]; rows=d.rows; cols=d.cols; totalMines=d.mines;
+      }
+      resetBoard();
+    }
+    diffSel.addEventListener('change', applyDifficulty);
+    newBtn.addEventListener('click', resetBoard);
+    faceBtn.addEventListener('click', resetBoard);
+    (function boot(){ applyDifficulty(); })();
+  </script>
 </body>
 </html>
