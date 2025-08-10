@@ -186,26 +186,45 @@
     themeToggle.addEventListener('change', e=> setTheme(e.target.checked));
     
     function fitBoard() {
-    const cs = getComputedStyle(boardEl);
-    const gap = parseFloat(cs.gap) || 6;
-
-    const toolbarH = document.querySelector('.toolbar')?.getBoundingClientRect().height || 0;
-    const footerH  = document.querySelector('.footer')?.getBoundingClientRect().height || 0;
-    const wrapPad  = 14 * 2;      
-    const appSide  = 22 * 2;      
-    const topBottomExtra = 22 + 16; 
-
-    const availW = window.innerWidth  - appSide;
-    const availH = window.innerHeight - (toolbarH + footerH + topBottomExtra);
-
-    const sizeW = Math.floor((availW - (cols - 1) * gap - wrapPad) / cols);
-    const sizeH = Math.floor((availH - (rows - 1) * gap - wrapPad) / rows);
-    const size  = Math.max(24, Math.min(54, Math.min(sizeW, sizeH)));
-
-    boardEl.style.setProperty('--cellSize', size + 'px');
+      // Use the visual viewport so Safari’s bars / notch are handled
+      const vpH = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      const vpW = (window.visualViewport && window.visualViewport.width)  || window.innerWidth;
+  
+      const toolbar = document.querySelector('.toolbar');
+      const footer  = document.querySelector('.footer');
+      const wrap    = document.querySelector('.board-wrap');
+  
+      const csBoard = getComputedStyle(document.getElementById('board'));
+      const gap = parseFloat(csBoard.gap) || 6;
+  
+      // dynamic paddings from CSS (don’t hardcode)
+      const csBody = getComputedStyle(document.body);
+      const bodyPadX = parseFloat(csBody.paddingLeft) + parseFloat(csBody.paddingRight);
+      const bodyPadY = parseFloat(csBody.paddingTop)  + parseFloat(csBody.paddingBottom);
+  
+      const csWrap = getComputedStyle(wrap);
+      const wrapPadX = parseFloat(csWrap.paddingLeft) + parseFloat(csWrap.paddingRight);
+      const wrapPadY = parseFloat(csWrap.paddingTop)  + parseFloat(csWrap.paddingBottom);
+  
+      const toolbarH = toolbar ? toolbar.getBoundingClientRect().height : 0;
+      const footerH  = footer  ? footer.getBoundingClientRect().height  : 0;
+  
+      // space available for the grid area
+      const availW = vpW - bodyPadX;
+      const availH = vpH - (toolbarH + footerH + bodyPadY);
+  
+      // cell size that fits both width and height (including gaps + wrap padding)
+      const sizeW = Math.floor((availW - wrapPadX - (cols - 1) * gap) / cols);
+      const sizeH = Math.floor((availH - wrapPadY - (rows - 1) * gap) / rows);
+      const size  = Math.max(18, Math.min(44, Math.min(sizeW, sizeH))); // clamp to keep taps comfy
+  
+      document.getElementById('board').style.setProperty('--cellSize', size + 'px');
     }
 
+    // Re-fit on rotation/resize and when Safari bars show/hide
     window.addEventListener('resize', fitBoard);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', fitBoard);
+
     
     function alloc(){
       isMine = Array.from({length:rows}, () => Array(cols).fill(false));
